@@ -1,264 +1,321 @@
-import React, { useState } from 'react';
-import { AlertCircle, CheckCircle, XCircle } from 'lucide-react';
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>假訊息查核工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <div id="app"></div>
 
-export default function FactCheckAssessment() {
-  const [topic, setTopic] = useState('');
-  const [started, setStarted] = useState(false);
-  const [currentStep, setCurrentStep] = useState(1);
-  const [answers, setAnswers] = useState({});
-  const [result, setResult] = useState(null);
+    <script>
+        // 應用程式狀態
+        let state = {
+            topic: '',
+            started: false,
+            currentStep: 1,
+            answers: {},
+            result: null
+        };
 
-  const questions = {
-    1: {
-      question: '檢驗訊息的提及特徵是否適當（如：年齡、背景、情形等），或與假設重點一致，為民意相關則別於被抽樣生活範圍特性、抽樣限制。',
-      options: [
-        { id: '1a', text: '適當', next: 2 },
-        { id: '1b', text: '檢驗訊息的提及和內容看起來接近且完整', next: 2 }
-      ]
-    },
-    2: {
-      question: '檢驗發布訊息的單位和作者',
-      options: [
-        { id: '2a', text: '檢驗發布訊息的單位和作者，確認是否屬公共機構或可信機構（例如：公媒、中央社、政府或學校單位）', next: 3 },
-        { id: '2b', text: '檢驗發布訊息的單位和作者，確認是否能取得其詳細聯絡方式（姓名、聯絡電話等）或者能進行聯繫或取得聯絡資訊', next: 3 }
-      ]
-    },
-    3: {
-      question: '檢驗訊息來源',
-      options: [
-        { id: '3a', text: '【政策宣傳】政府部會直接發佈的官媒或政府宣傳社群帳號，或被公開發佈於「官方資料庫」', next: 4 },
-        { id: '3b', text: '【民意素材】政府機關資料庫提及或媒體揭露之研究資料說明來源，或有明確聯絡管道，或媒體進行報導或求證及議員質詢或投訴等公眾資源', next: 4 }
-      ]
-    },
-    4: {
-      question: '訊息內容檢驗',
-      options: [
-        { id: '4a', text: '訊息內容能由已建置轉傳（如：公開平台檢驗或提出說明或我們的事實查核平台能提出說明或檢核資料，獲得查核的經濟與電力建設）', next: 5 },
-        { id: '4b', text: '訊息已由「專家發現」（內部確認）「團隊」或有實施案例基準或提及或資料與發布『或僅為系統經由要求傳公開故意傳入物』', next: 5 }
-      ]
-    },
-    5: {
-      question: '語境脈絡檢驗',
-      options: [
-        { id: '5a', text: '【語境脈絡】我數開的事收反向背景，發現被標重已發現訊框紀或況', next: 6 },
-        { id: '5b', text: '【語境脈絡】我數開的事收反向背景，發現被經常經用體、專人平理合成或具、經反腦影響或文化對後事件，已實行修正後或大幅度直用體', next: 6 }
-      ]
-    },
-    6: {
-      question: '多方比對檢驗',
-      options: [
-        { id: '6a', text: '【多方比對】我用用直合的暗響字裡行於等。修開多家媒體且同質的收感取方暴應或發就卜曾，同時發端收反體化假協等。誤間並正確可信', next: 'result' },
-        { id: '6b', text: '【多方比對】我用用直合的暗響字裡合等。技术我証何具圖与質詢框個基，成已圖提背另支應，發響或個或不公証、警察照代或卜不同性置，或發接代暴已認的向修卜可信', next: 'result' }
-      ]
-    }
-  };
+        // 問題定義
+        const questions = {
+            1: {
+                question: '檢驗訊息的提及特徵是否適當（如：年齡、背景、情形等），或與假設重點一致，為民意相關則別於被抽樣生活範圍特性、抽樣限制。',
+                options: [
+                    { id: '1a', text: '適當', next: 2 },
+                    { id: '1b', text: '檢驗訊息的提及和內容看起來接近且完整', next: 2 }
+                ]
+            },
+            2: {
+                question: '檢驗發布訊息的單位和作者',
+                options: [
+                    { id: '2a', text: '檢驗發布訊息的單位和作者，確認是否屬公共機構或可信機構（例如：公媒、中央社、政府或學校單位）', next: 3 },
+                    { id: '2b', text: '檢驗發布訊息的單位和作者，確認是否能取得其詳細聯絡方式（姓名、聯絡電話等）或者能進行聯繫或取得聯絡資訊', next: 3 }
+                ]
+            },
+            3: {
+                question: '檢驗訊息來源',
+                options: [
+                    { id: '3a', text: '【政策宣傳】政府部會直接發佈的官媒或政府宣傳社群帳號，或被公開發佈於「官方資料庫」', next: 4 },
+                    { id: '3b', text: '【民意素材】政府機關資料庫提及或媒體揭露之研究資料說明來源，或有明確聯絡管道，或媒體進行報導或求證及議員質詢或投訴等公眾資源', next: 4 }
+                ]
+            },
+            4: {
+                question: '訊息內容檢驗',
+                options: [
+                    { id: '4a', text: '訊息內容能由已建置轉傳（如：公開平台檢驗或提出說明或我們的事實查核平台能提出說明或檢核資料，獲得查核的經濟與電力建設）', next: 5 },
+                    { id: '4b', text: '訊息已由「專家發現」（內部確認）「團隊」或有實施案例基準或提及或資料與發布『或僅為系統經由要求傳公開故意傳入物』', next: 5 }
+                ]
+            },
+            5: {
+                question: '語境脈絡檢驗',
+                options: [
+                    { id: '5a', text: '【語境脈絡】我數開的事收反向背景，發現被標重已發現訊框紀或況', next: 6 },
+                    { id: '5b', text: '【語境脈絡】我數開的事收反向背景，發現被經常經用體、專人平理合成或具、經反腦影響或文化對後事件，已實行修正後或大幅度直用體', next: 6 }
+                ]
+            },
+            6: {
+                question: '多方比對檢驗',
+                options: [
+                    { id: '6a', text: '【多方比對】我用用直合的暗響字裡行於等。修開多家媒體且同質的收感取方暴應或發就卜曾，同時發端收反體化假協等。誤間並正確可信', next: 'result' },
+                    { id: '6b', text: '【多方比對】我用用直合的暗響字裡合等。技术我証何具圖与質詢框個基，成已圖提背另支應，發響或個或不公証、警察照代或卜不同性置，或發接代暴已認的向修卜可信', next: 'result' }
+                ]
+            }
+        };
 
-  const calculateResult = (finalAnswerId) => {
-    const greenAnswers = ['1a', '2a', '3a', '4a', '5a', '6a'];
-    const yellowAnswers = ['1b', '2b', '3b', '4b', '5b'];
-    const redAnswers = ['6b'];
+        // 計算結果
+        function calculateResult(finalAnswerId) {
+            const greenAnswers = ['1a', '2a', '3a', '4a', '5a', '6a'];
+            const yellowAnswers = ['1b', '2b', '3b', '4b', '5b'];
+            const redAnswers = ['6b'];
 
-    const allAnswers = Object.values(answers);
-    allAnswers.push(finalAnswerId);
+            const allAnswers = Object.values(state.answers);
+            allAnswers.push(finalAnswerId);
 
-    if (redAnswers.includes(finalAnswerId)) {
-      return {
-        light: 'red',
-        title: '紅燈 - 高度可疑訊息',
-        reason: '此訊息存在多處疑點，包括來源不明確、內容無法查證或經多方比對發現矛盾。建議不要轉傳此訊息。'
-      };
-    }
+            if (redAnswers.includes(finalAnswerId)) {
+                return {
+                    light: 'red',
+                    title: '紅燈 - 高度可疑訊息',
+                    reason: '此訊息存在多處疑點，包括來源不明確、內容無法查證或經多方比對發現矛盾。建議不要轉傳此訊息。'
+                };
+            }
 
-    const greenCount = allAnswers.filter(a => greenAnswers.includes(a)).length;
-    const yellowCount = allAnswers.filter(a => yellowAnswers.includes(a)).length;
+            const greenCount = allAnswers.filter(a => greenAnswers.includes(a)).length;
+            const yellowCount = allAnswers.filter(a => yellowAnswers.includes(a)).length;
 
-    if (greenCount >= 5) {
-      return {
-        light: 'green',
-        title: '綠燈 - 可信度高',
-        reason: '此訊息來源可靠、內容經過查證，且與官方資料或多方來源相符。可以安心分享。'
-      };
-    } else if (greenCount >= 3 || yellowCount >= 3) {
-      return {
-        light: 'yellow',
-        title: '黃燈 - 需謹慎判斷',
-        reason: '此訊息部分內容可信，但仍有待進一步查證。建議在分享前先尋求更多證據或官方說明。'
-      };
-    } else {
-      return {
-        light: 'red',
-        title: '紅燈 - 高度可疑訊息',
-        reason: '此訊息缺乏足夠的可信來源和證據支持。建議不要轉傳此訊息。'
-      };
-    }
-  };
+            if (greenCount >= 5) {
+                return {
+                    light: 'green',
+                    title: '綠燈 - 可信度高',
+                    reason: '此訊息來源可靠、內容經過查證，且與官方資料或多方來源相符。可以安心分享。'
+                };
+            } else if (greenCount >= 3 || yellowCount >= 3) {
+                return {
+                    light: 'yellow',
+                    title: '黃燈 - 需謹慎判斷',
+                    reason: '此訊息部分內容可信，但仍有待進一步查證。建議在分享前先尋求更多證據或官方說明。'
+                };
+            } else {
+                return {
+                    light: 'red',
+                    title: '紅燈 - 高度可疑訊息',
+                    reason: '此訊息缺乏足夠的可信來源和證據支持。建議不要轉傳此訊息。'
+                };
+            }
+        }
 
-  const handleAnswer = (answerId, nextStep) => {
-    const newAnswers = { ...answers, [currentStep]: answerId };
-    setAnswers(newAnswers);
-
-    if (nextStep === 'result') {
-      const finalResult = calculateResult(answerId);
-      setResult(finalResult);
-    } else {
-      setCurrentStep(nextStep);
-    }
-  };
-
-  const handleStart = () => {
-    if (topic.trim()) {
-      setStarted(true);
-    }
-  };
-
-  const handleReset = () => {
-    setTopic('');
-    setStarted(false);
-    setCurrentStep(1);
-    setAnswers({});
-    setResult(null);
-  };
-
-  if (!started) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
-        <div className="max-w-2xl mx-auto">
-          <div className="bg-white rounded-lg shadow-xl p-8">
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">假訊息查核工具</h1>
-            <p className="text-gray-600 mb-8">數字媒體與民意查核表</p>
+        // 渲染函數
+        function render() {
+            const app = document.getElementById('app');
             
-            <div className="mb-6">
-              <label className="block text-lg font-medium text-gray-700 mb-3">
-                請輸入要查核的訊息主題：
-              </label>
-              <input
-                type="text"
-                value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-                placeholder="例如：某政策的網路傳言"
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
-              />
-            </div>
-            
-            <button
-              onClick={handleStart}
-              disabled={!topic.trim()}
-              className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-medium text-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-            >
-              開始查核
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+            if (!state.started) {
+                app.innerHTML = renderStartScreen();
+            } else if (state.result) {
+                app.innerHTML = renderResultScreen();
+            } else {
+                app.innerHTML = renderQuestionScreen();
+            }
+        }
 
-  if (result) {
-    const lightColors = {
-      green: 'bg-green-500',
-      yellow: 'bg-yellow-500',
-      red: 'bg-red-500'
-    };
+        function renderStartScreen() {
+            return `
+                <div class="p-8 fade-in">
+                    <div class="max-w-2xl mx-auto">
+                        <div class="bg-white rounded-lg shadow-xl p-8">
+                            <h1 class="text-3xl font-bold text-gray-800 mb-2">🎯 假訊息查核工具</h1>
+                            <p class="text-gray-600 mb-8">數字媒體與民意查核表</p>
+                            
+                            <div class="mb-6">
+                                <label class="block text-lg font-medium text-gray-700 mb-3">
+                                    請輸入要查核的訊息主題：
+                                </label>
+                                <input
+                                    type="text"
+                                    id="topicInput"
+                                    placeholder="例如：某政策的網路傳言"
+                                    class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
+                                />
+                            </div>
+                            
+                            <button
+                                onclick="handleStart()"
+                                class="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-medium text-lg hover:bg-blue-700 transition-colors"
+                            >
+                                開始查核 →
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
 
-    const iconColors = {
-      green: 'text-green-500',
-      yellow: 'text-yellow-500',
-      red: 'text-red-500'
-    };
+        function renderQuestionScreen() {
+            const currentQ = questions[state.currentStep];
+            const progress = (state.currentStep / 6) * 100;
 
-    const Icon = result.light === 'green' ? CheckCircle : result.light === 'yellow' ? AlertCircle : XCircle;
+            return `
+                <div class="p-8 fade-in">
+                    <div class="max-w-2xl mx-auto">
+                        <div class="bg-white rounded-lg shadow-xl p-8">
+                            <div class="mb-6">
+                                <h2 class="text-xl font-bold text-gray-800 mb-2">🔍 查核主題：${state.topic}</h2>
+                                <div class="flex items-center gap-2">
+                                    <div class="flex-1 bg-gray-200 rounded-full h-2">
+                                        <div 
+                                            class="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                            style="width: ${progress}%"
+                                        ></div>
+                                    </div>
+                                    <span class="text-sm text-gray-600">步驟 ${state.currentStep}/6</span>
+                                </div>
+                            </div>
 
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
-        <div className="max-w-2xl mx-auto">
-          <div className="bg-white rounded-lg shadow-xl p-8">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">查核主題：{topic}</h2>
-            
-            <div className="flex flex-col items-center my-8">
-              <div className={`w-32 h-32 rounded-full ${lightColors[result.light]} flex items-center justify-center mb-6 shadow-lg animate-pulse`}>
-                <Icon className="w-20 h-20 text-white" />
-              </div>
-              
-              <h3 className={`text-2xl font-bold mb-4 ${iconColors[result.light]}`}>
-                {result.title}
-              </h3>
-              
-              <div className="bg-gray-50 rounded-lg p-6 w-full">
-                <p className="text-gray-700 text-lg leading-relaxed">
-                  {result.reason}
-                </p>
-              </div>
-            </div>
+                            <div class="mb-8">
+                                <h3 class="text-lg font-semibold text-gray-700 mb-1">步驟 ${state.currentStep}</h3>
+                                <p class="text-gray-800 text-lg leading-relaxed mb-6">
+                                    ${currentQ.question}
+                                </p>
 
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <h4 className="font-semibold text-gray-700 mb-3">查核歷程：</h4>
-              <div className="space-y-2">
-                {Object.entries(answers).map(([step, answerId]) => (
-                  <div key={step} className="text-sm text-gray-600">
-                    步驟 {step}: {answerId}
-                  </div>
-                ))}
-              </div>
-            </div>
-            
-            <button
-              onClick={handleReset}
-              className="w-full mt-8 bg-gray-600 text-white py-3 px-6 rounded-lg font-medium text-lg hover:bg-gray-700 transition-colors"
-            >
-              重新查核
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+                                <div class="space-y-3">
+                                    ${currentQ.options.map((option, index) => `
+                                        <button
+                                            onclick="handleAnswer('${option.id}', ${typeof option.next === 'number' ? option.next : "'result'"})"
+                                            class="w-full text-left p-4 border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all duration-200 group"
+                                        >
+                                            <div class="flex items-start gap-3">
+                                                <span class="flex-shrink-0 w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-gray-700 font-medium group-hover:bg-blue-500 group-hover:text-white transition-colors">
+                                                    ${String.fromCharCode(65 + index)}
+                                                </span>
+                                                <span class="text-gray-700 group-hover:text-gray-900 flex-1">
+                                                    ${option.text}
+                                                </span>
+                                            </div>
+                                        </button>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
 
-  const currentQ = questions[currentStep];
+        function renderResultScreen() {
+            const lightColors = {
+                green: 'bg-green-500',
+                yellow: 'bg-yellow-500',
+                red: 'bg-red-500'
+            };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
-      <div className="max-w-2xl mx-auto">
-        <div className="bg-white rounded-lg shadow-xl p-8">
-          <div className="mb-6">
-            <h2 className="text-xl font-bold text-gray-800 mb-2">查核主題：{topic}</h2>
-            <div className="flex items-center gap-2">
-              <div className="flex-1 bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${(currentStep / 6) * 100}%` }}
-                />
-              </div>
-              <span className="text-sm text-gray-600">步驟 {currentStep}/6</span>
-            </div>
-          </div>
+            const textColors = {
+                green: 'text-green-500',
+                yellow: 'text-yellow-500',
+                red: 'text-red-500'
+            };
 
-          <div className="mb-8">
-            <h3 className="text-lg font-semibold text-gray-700 mb-1">步驟 {currentStep}</h3>
-            <p className="text-gray-800 text-lg leading-relaxed mb-6">
-              {currentQ.question}
-            </p>
+            const icons = {
+                green: '✓',
+                yellow: '⚠',
+                red: '✗'
+            };
 
-            <div className="space-y-3">
-              {currentQ.options.map((option, index) => (
-                <button
-                  key={option.id}
-                  onClick={() => handleAnswer(option.id, option.next)}
-                  className="w-full text-left p-4 border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all duration-200 group"
-                >
-                  <div className="flex items-start gap-3">
-                    <span className="flex-shrink-0 w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-gray-700 font-medium group-hover:bg-blue-500 group-hover:text-white transition-colors">
-                      {String.fromCharCode(65 + index)}
-                    </span>
-                    <span className="text-gray-700 group-hover:text-gray-900 flex-1">
-                      {option.text}
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+            return `
+                <div class="p-8 fade-in">
+                    <div class="max-w-2xl mx-auto">
+                        <div class="bg-white rounded-lg shadow-xl p-8">
+                            <h2 class="text-2xl font-bold text-gray-800 mb-4">🔍 查核主題：${state.topic}</h2>
+                            
+                            <div class="flex flex-col items-center my-8">
+                                <div class="${lightColors[state.result.light]} w-32 h-32 rounded-full flex items-center justify-center mb-6 shadow-lg animate-pulse">
+                                    <span class="text-white text-6xl font-bold">${icons[state.result.light]}</span>
+                                </div>
+                                
+                                <h3 class="text-2xl font-bold mb-4 ${textColors[state.result.light]}">
+                                    ${state.result.title}
+                                </h3>
+                                
+                                <div class="bg-gray-50 rounded-lg p-6 w-full">
+                                    <p class="text-gray-700 text-lg leading-relaxed">
+                                        ${state.result.reason}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="mt-8 pt-6 border-t border-gray-200">
+                                <h4 class="font-semibold text-gray-700 mb-3">📋 查核歷程：</h4>
+                                <div class="space-y-2">
+                                    ${Object.entries(state.answers).map(([step, answerId]) => `
+                                        <div class="text-sm text-gray-600 bg-gray-50 p-2 rounded">
+                                            步驟 ${step}: ${answerId}
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            
+                            <button
+                                onclick="handleReset()"
+                                class="w-full mt-8 bg-gray-600 text-white py-3 px-6 rounded-lg font-medium text-lg hover:bg-gray-700 transition-colors"
+                            >
+                                🔄 重新查核
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 事件處理函數
+        function handleStart() {
+            const input = document.getElementById('topicInput');
+            if (input.value.trim()) {
+                state.topic = input.value.trim();
+                state.started = true;
+                render();
+            }
+        }
+
+        function handleAnswer(answerId, nextStep) {
+            state.answers[state.currentStep] = answerId;
+
+            if (nextStep === 'result') {
+                state.result = calculateResult(answerId);
+            } else {
+                state.currentStep = nextStep;
+            }
+            render();
+        }
+
+        function handleReset() {
+            state = {
+                topic: '',
+                started: false,
+                currentStep: 1,
+                answers: {},
+                result: null
+            };
+            render();
+        }
+
+        // 初始化
+        render();
+    </script>
+</body>
+</html>
